@@ -1,0 +1,76 @@
+name: Build iOS IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Tool versions
+        run: |
+          xcodebuild -version
+          node -v
+
+      - name: Install packages
+        run: npm install --no-audit --no-fund
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Create iOS project
+        run: |
+          rm -rf ios
+          npx cap add ios
+          npx cap sync ios
+
+      - name: App icon, black splash, permissions
+        run: |
+          A=ios/App/App/Assets.xcassets
+          cp resources/icon-1024.png "$A/AppIcon.appiconset/AppIcon-512@2x.png"
+          for f in splash-2732x2732.png splash-2732x2732-1.png splash-2732x2732-2.png; do
+            cp resources/splash-2732.png "$A/Splash.imageset/$f"
+          done
+          P=ios/App/App/Info.plist
+          set_key() { /usr/libexec/PlistBuddy -c "Delete :$1" "$P" 2>/dev/null || true; /usr/libexec/PlistBuddy -c "Add :$1 $2 $3" "$P"; }
+          set_key NSPhotoLibraryAddUsageDescription string "XO LAB saves your exported videos to Photos."
+          set_key NSPhotoLibraryUsageDescription string "XO LAB opens images and videos you choose as visuals."
+          set_key NSCameraUsageDescription string "XO LAB can use a photo or video you take as a visual."
+          set_key NSMicrophoneUsageDescription string "Needed only when you record a video to use as a visual."
+          set_key ITSAppUsesNonExemptEncryption bool false
+          plutil -lint "$P"
+
+      - name: List schemes
+        run: xcodebuild -list -project ios/App/App.xcodeproj
+
+      - name: Build app (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tail -n 300
+
+      - name: Package IPA
+        run: |
+          APP=build/Build/Products/Release-iphoneos/App.app
+          test -d "$APP"
+          rm -rf Payload && mkdir Payload
+          cp -R "$APP" Payload/
+          zip -qry XO-LAB-unsigned.ipa Payload
+          ls -lh XO-LAB-unsigned.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: XO-LAB-unsigned-ipa
+          path: XO-LAB-unsigned.ipa
+          if-no-files-found: error
