@@ -1,0 +1,7 @@
+{
+  "appId": "com.xolab.frameecho",
+  "appName": "XO LAB",
+  "webDir": "dist",
+  "backgroundColor": "#000000",
+  "ios": { "contentInset": "never", "backgroundColor": "#000000", "scrollEnabled": true }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "xo-lab-frame-echo",
+  "version": "2.1.0",
+  "private": true,
+  "description": "XO LAB Frame Echo — audio-reactive DJ visuals (web + Capacitor iOS)",
+  "type": "module",
+  "scripts": { "build": "node build.mjs" },
+  "dependencies": {
+    "@capacitor/core": "8.6.2",
+    "@capacitor/ios": "8.6.2",
+    "@capacitor/filesystem": "8.1.5",
+    "@capacitor/share": "8.0.3",
+    "three": "0.170.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.6.2",
+    "esbuild": "0.24.2"
+  }
+}
